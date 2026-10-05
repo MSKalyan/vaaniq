@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nenu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nenu}
+      POSTGRES_DB: ${POSTGRES_DB:-nenuaikadu}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nenu} -d ${POSTGRES_DB:-nenuaikadu}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nenu}:${POSTGRES_PASSWORD:-nenu}@postgres:5432/${POSTGRES_DB:-nenuaikadu}
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-nenu}:${POSTGRES_PASSWORD:-nenu}@postgres:5432/${POSTGRES_DB:-nenuaikadu}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ./apps/api:/code
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nenu}:${POSTGRES_PASSWORD:-nenu}@postgres:5432/${POSTGRES_DB:-nenuaikadu}
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-nenu}:${POSTGRES_PASSWORD:-nenu}@postgres:5432/${POSTGRES_DB:-nenuaikadu}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app.celery_app worker --loglevel=info
+    volumes:
+      - ./apps/api:/code
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    command: pnpm dev --hostname 0.0.0.0
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+
+volumes:
+  pgdata:
