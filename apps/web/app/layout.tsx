@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "@/app/providers";
 
 export const metadata: Metadata = {
-  title: "NenuAIKadu",
+  title: "VoiceAI",
   description:
     "AI outbound voice calling platform for Indian businesses — regional-language AI voice agents",
 };

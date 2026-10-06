@@ -33,7 +33,8 @@ def _create_token(subject: str, token_type: str, expires_delta: timedelta) -> st
         "iat": now,
         "exp": now + expires_delta,
     }
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    token: str = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    return token
 
 
 def create_access_token(subject: str) -> str:
@@ -59,4 +60,5 @@ def decode_token(token: str, expected_type: str = "access") -> dict[str, Any]:
         raise CredentialsError("Invalid or expired token") from exc
     if payload.get("type") != expected_type:
         raise CredentialsError("Unexpected token type")
-    return payload
+    decoded: dict[str, Any] = payload
+    return decoded

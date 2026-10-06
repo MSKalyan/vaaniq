@@ -1,7 +1,7 @@
 .PHONY: help setup backend-install frontend-install dev backend frontend worker \
 	db-up db-migrate db-migrate-autogen db-downgrade db-shell test test-backend \
 	test-frontend lint lint-backend lint-frontend typecheck typecheck-backend \
-	typecheck-frontend docker-up docker-down docker-up-prod logs format clean backup
+	typecheck-frontend docker-up docker-down docker-up-prod tunnel logs format clean backup
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-24s\033[0m %s\n", $$1, $$2}'
@@ -45,7 +45,7 @@ db-downgrade: ## Rollback last migration
 	cd apps/api && alembic downgrade -1
 
 db-shell: ## Open psql into the app database
-	docker compose exec postgres psql -U nenu -d nenuaikadu
+	docker compose exec postgres psql -U nenu -d VoiceAI
 
 # ---------- Tests ----------
 test: ## Run all tests
@@ -80,6 +80,10 @@ typecheck-frontend: ## tsc no-emit
 docker-up: ## Full dev stack
 	docker compose up --build
 
+tunnel: ## Start the ngrok tunnel (Twilio webhooks/media stream)
+	docker compose --profile ngrok up -d ngrok
+	docker compose logs -f ngrok
+
 docker-down: ## Stop dev stack
 	docker compose down
 
@@ -100,4 +104,4 @@ clean: ## Remove caches and build artifacts
 
 backup: ## Dump database to ./scripts/backups
 	mkdir -p scripts/backups
-	docker compose exec -T postgres pg_dump -U nenu nenuaikadu > scripts/backups/nenuaikadu_$$(date +%Y%m%d_%H%M%S).sql
+	docker compose exec -T postgres pg_dump -U nenu VoiceAI > scripts/backups/VoiceAI_$$(date +%Y%m%d_%H%M%S).sql

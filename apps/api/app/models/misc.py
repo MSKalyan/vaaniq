@@ -8,8 +8,14 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.config import settings
 from app.core.database import Base
 from app.core.types import created_at_col, pk_uuid, updated_at_col
+
+# The vector width is fixed at DDL time (the column type is not dynamic), so read
+# the configured embedding dimension once at import. EMBEDDING_DIMENSION must be
+# changed before the first migration to alter the schema.
+_EMBEDDING_DIM = settings.embedding_dimension
 
 
 class CustomerMemory(Base):
@@ -104,8 +110,8 @@ class KnowledgeChunk(Base):
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     chunk_index: Mapped[int] = mapped_column(default=0, nullable=False)
-    # pgvector embedding; dimension depends on the embedding provider
-    embedding = mapped_column(Vector(1536), nullable=True)
+    # pgvector embedding; width fixed at migration time by EMBEDDING_DIMENSION
+    embedding = mapped_column(Vector(_EMBEDDING_DIM), nullable=True)
     chunk_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = created_at_col()
 

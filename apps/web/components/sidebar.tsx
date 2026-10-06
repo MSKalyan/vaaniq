@@ -30,7 +30,7 @@ export function Sidebar() {
   return (
     <aside className="w-60 shrink-0 border-r bg-secondary/40 hidden md:flex">
       <nav className="flex w-full flex-col gap-1 p-4">
-        <div className="mb-6 px-2 text-lg font-bold">NenuAIKadu</div>
+        <div className="mb-6 px-2 text-lg font-bold">VoiceAI</div>
         {NAV.map((item) => {
           const active = pathname.startsWith(item.href);
           return (

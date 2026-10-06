@@ -19,12 +19,10 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function CampaignsPage() {
   const { data: campaigns, isLoading, isError } = useCampaigns();
-  const action = useCampaignAction("");
+  const campaignAction = useCampaignAction();
 
-  const runAction = (id: string, act: string) => {
-    const m = useCampaignAction(id);
-    m.mutate(act);
-  };
+  const runAction = (id: string, act: string) =>
+    campaignAction.mutate({ id, action: act });
 
   return (
     <DashboardLayout>

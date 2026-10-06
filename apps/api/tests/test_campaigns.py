@@ -7,15 +7,14 @@ Validates campaign creation, lead enrollment, and status transitions
 import uuid
 
 import pytest
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
-
 from app.models.enums import CampaignStatus, LeadStatus
 from app.repositories import leads as lead_repo
 from app.schemas.campaign import CampaignCreate
 from app.schemas.lead import LeadCreate
 from app.services import campaigns as service
 from app.services import leads as lead_service
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
 USER = uuid.uuid4()
 
@@ -24,10 +23,9 @@ USER = uuid.uuid4()
 async def db():
     # Importing all models registers every table on Base.metadata.
     # knowledge_chunks uses pgvector Vector — exclude it from the SQLite fixture.
-    from sqlalchemy import MetaData
-
     import app.models  # noqa: F401  (registers all tables)
     from app.core.database import Base
+    from sqlalchemy import MetaData
 
     engine = create_async_engine(
         "sqlite+aiosqlite://",

@@ -44,11 +44,16 @@ export function useCreateCampaign() {
   });
 }
 
-export function useCampaignAction(campaignId: string) {
+/**
+ * Campaign lifecycle actions (start / pause / cancel / complete). The target campaign
+ * is a mutation variable, not a hook argument, so a list page can drive many rows from
+ * one hook without calling a hook inside a callback.
+ */
+export function useCampaignAction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (action: string) =>
-      api.post<Campaign>(`/campaigns/${campaignId}/${action}`, {}),
+    mutationFn: ({ id, action }: { id: string; action: string }) =>
+      api.post<Campaign>(`/campaigns/${id}/${action}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
   });
 }

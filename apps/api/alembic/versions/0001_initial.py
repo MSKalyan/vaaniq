@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-10-05
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -29,8 +30,18 @@ def upgrade() -> None:
         sa.Column("name", sa.String(120), nullable=False),
         sa.Column("hashed_password", sa.String(255), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_users_email", "users", ["email"], unique=True)
 
@@ -43,7 +54,12 @@ def upgrade() -> None:
         sa.Column("token_hash", sa.String(255), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("revoked", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_refresh_tokens_user_id", "refresh_tokens", ["user_id"])
     op.create_index("ix_refresh_tokens_token_hash", "refresh_tokens", ["token_hash"], unique=True)
@@ -65,8 +81,18 @@ def upgrade() -> None:
         sa.Column("max_call_duration", sa.Integer(), nullable=False, server_default="600"),
         sa.Column("temperature", sa.Float(), nullable=False, server_default="0.7"),
         sa.Column("status", sa.String(16), nullable=False, server_default="DRAFT"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_agents_user_id", "agents", ["user_id"])
 
@@ -76,8 +102,15 @@ def upgrade() -> None:
         sa.Column("provider", sa.String(32), nullable=False, server_default="sarvam"),
         sa.Column("voice_name", sa.String(64), nullable=False),
         sa.Column("language", sa.String(16), nullable=False, server_default="auto"),
-        sa.Column("voice_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "voice_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_agent_voices_voice_name", "agent_voices", ["voice_name"])
 
@@ -89,8 +122,18 @@ def upgrade() -> None:
         ),
         sa.Column("name", sa.String(120), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_knowledge_bases_user_id", "knowledge_bases", ["user_id"])
 
@@ -121,8 +164,18 @@ def upgrade() -> None:
         sa.Column("location", sa.String(120), nullable=True),
         sa.Column("status", sa.String(24), nullable=False, server_default="NEW"),
         sa.Column("custom_fields", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_leads_phone_number", "leads", ["phone_number"])
     op.create_index("ix_leads_status", "leads", ["status"])
@@ -141,7 +194,12 @@ def upgrade() -> None:
         sa.Column("invalid", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("status", sa.String(24), nullable=False, server_default="PENDING"),
         sa.Column("errors", sa.JSON(), nullable=False, server_default=sa.text("'[]'::json")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_lead_import_jobs_user_id", "lead_import_jobs", ["user_id"])
 
@@ -177,8 +235,18 @@ def upgrade() -> None:
         sa.Column("max_concurrent_calls", sa.Integer(), nullable=False, server_default="5"),
         sa.Column("retry_attempts", sa.Integer(), nullable=False, server_default="2"),
         sa.Column("retry_delay_minutes", sa.Integer(), nullable=False, server_default="30"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_campaigns_user_id", "campaigns", ["user_id"])
     op.create_index("ix_campaigns_agent_id", "campaigns", ["agent_id"])
@@ -200,7 +268,12 @@ def upgrade() -> None:
         sa.Column("attempts", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("last_attempt_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("next_attempt_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_campaign_leads_campaign_id", "campaign_leads", ["campaign_id"])
     op.create_index("ix_campaign_leads_lead_id", "campaign_leads", ["lead_id"])
@@ -234,17 +307,25 @@ def upgrade() -> None:
         sa.Column("state", sa.String(24), nullable=False, server_default="INITIALIZING"),
         sa.Column("outcome", sa.String(24), nullable=True),
         sa.Column("status", sa.String(24), nullable=False, server_default="INITIALIZING"),
-        sa.Column(
-            "direction", sa.String(12), nullable=False, server_default=sa.text("'outbound'")
-        ),
+        sa.Column("direction", sa.String(12), nullable=False, server_default=sa.text("'outbound'")),
         sa.Column("phone_number", sa.String(20), nullable=True),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("ended_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("duration_seconds", sa.Integer(), nullable=True),
         sa.Column("latency_ms", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
         sa.Column("error_message", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_calls_user_id", "calls", ["user_id"])
     op.create_index("ix_calls_campaign_lead_id", "calls", ["campaign_lead_id"])
@@ -264,7 +345,9 @@ def upgrade() -> None:
         sa.Column("speaker", sa.String(12), nullable=False),
         sa.Column("text", sa.Text(), nullable=False),
         sa.Column("language", sa.String(16), nullable=True),
-        sa.Column("timestamp", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "timestamp", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")
+        ),
         sa.Column("sequence_number", sa.Integer(), nullable=False, server_default="0"),
     )
     op.create_index("ix_call_transcripts_call_id", "call_transcripts", ["call_id"])
@@ -281,7 +364,12 @@ def upgrade() -> None:
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("ended_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("status", sa.String(24), nullable=False, server_default="PENDING"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_call_recordings_call_id", "call_recordings", ["call_id"])
 
@@ -296,13 +384,22 @@ def upgrade() -> None:
         sa.Column("intent", sa.String(64), nullable=True),
         sa.Column("interest_level", sa.String(16), nullable=True),
         sa.Column("key_points", sa.JSON(), nullable=False, server_default=sa.text("'[]'::json")),
-        sa.Column("extracted_data", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
+        sa.Column(
+            "extracted_data", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")
+        ),
         sa.Column("objections", sa.JSON(), nullable=False, server_default=sa.text("'[]'::json")),
         sa.Column("next_action", sa.Text(), nullable=True),
-        sa.Column("callback_required", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column(
+            "callback_required", sa.Boolean(), nullable=False, server_default=sa.text("false")
+        ),
         sa.Column("callback_time", sa.DateTime(timezone=True), nullable=True),
         sa.Column("hllm_version", sa.String(32), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_call_analysis_call_id", "call_analysis", ["call_id"])
 
@@ -320,7 +417,12 @@ def upgrade() -> None:
         sa.Column("interest_level", sa.String(16), nullable=True),
         sa.Column("preferred_callback_time", sa.DateTime(timezone=True), nullable=True),
         sa.Column("previous_call_summary", sa.Text(), nullable=True),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_customer_memory_lead_id", "customer_memory", ["lead_id"], unique=True)
 
@@ -340,7 +442,12 @@ def upgrade() -> None:
         sa.Column("scheduled_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("status", sa.String(24), nullable=False, server_default="SCHEDULED"),
         sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_callbacks_lead_id", "callbacks", ["lead_id"])
     op.create_index("ix_callbacks_agent_id", "callbacks", ["agent_id"])
@@ -359,7 +466,12 @@ def upgrade() -> None:
         sa.Column("source_type", sa.String(32), nullable=False, server_default="text"),
         sa.Column("storage_key", sa.String(512), nullable=True),
         sa.Column("doc_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index(
         "ix_knowledge_documents_knowledge_base_id", "knowledge_documents", ["knowledge_base_id"]
@@ -377,8 +489,15 @@ def upgrade() -> None:
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column("chunk_index", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("embedding", Vector(1536), nullable=True),
-        sa.Column("chunk_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "chunk_metadata", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_knowledge_chunks_document_id", "knowledge_chunks", ["document_id"])
     # HNSW index on the vector column requires an operator class (cosine distance).
@@ -399,7 +518,12 @@ def upgrade() -> None:
         sa.Column("resource_id", sa.Uuid(), nullable=True),
         sa.Column("details", sa.JSON(), nullable=False, server_default=sa.text("'{}'::json")),
         sa.Column("ip_address", sa.String(45), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_audit_logs_user_id", "audit_logs", ["user_id"])
     op.create_index("ix_audit_logs_action", "audit_logs", ["action"])

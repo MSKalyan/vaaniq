@@ -3,6 +3,9 @@
 Central place to build provider instances. Business logic asks for a provider by
 capability and a configured name; adding a new provider means registering it here,
 not scattering construction across the codebase.
+
+Each getter is cached, so a single provider instance (and its HTTP client pool) is
+reused across a request.
 """
 
 from functools import lru_cache
@@ -11,20 +14,24 @@ from app.core.config import settings
 from app.integrations.base import (
     EmbeddingProvider,
     LLMProvider,
+    ProviderError,
     STTProvider,
     TelephonyProvider,
     TTSProvider,
 )
 
 
-class ProviderNotConfiguredError(Exception):
-    pass
+class ProviderNotConfiguredError(ProviderError):
+    """Raised when a capability is requested but its provider is not configured."""
 
 
 @lru_cache
 def get_llm() -> LLMProvider:
-    # Only Sarvam is wired initially; a settings key (LLM_PROVIDER) will select
-    # among OpenAI/Anthropic/etc. later without touching call sites.
+    provider = settings.llm_provider.lower()
+    if provider != "sarvam":
+        raise ProviderNotConfiguredError(
+            f"LLM provider '{provider}' is not implemented; available: sarvam"
+        )
     from app.integrations.sarvam.llm import SarvamLLM
 
     return SarvamLLM(model=settings.sarvam_llm_model)
@@ -32,6 +39,11 @@ def get_llm() -> LLMProvider:
 
 @lru_cache
 def get_stt() -> STTProvider:
+    provider = settings.stt_provider.lower()
+    if provider != "sarvam":
+        raise ProviderNotConfiguredError(
+            f"STT provider '{provider}' is not implemented; available: sarvam"
+        )
     from app.integrations.sarvam.stt import SarvamRealtimeSTT
 
     return SarvamRealtimeSTT(model=settings.sarvam_stt_model)
@@ -39,6 +51,11 @@ def get_stt() -> STTProvider:
 
 @lru_cache
 def get_tts() -> TTSProvider:
+    provider = settings.tts_provider.lower()
+    if provider != "sarvam":
+        raise ProviderNotConfiguredError(
+            f"TTS provider '{provider}' is not implemented; available: sarvam"
+        )
     from app.integrations.sarvam.tts import SarvamTTS
 
     return SarvamTTS(model=settings.sarvam_tts_model, voice=settings.sarvam_tts_voice)
@@ -46,6 +63,11 @@ def get_tts() -> TTSProvider:
 
 @lru_cache
 def get_telephony() -> TelephonyProvider:
+    provider = settings.telephony_provider.lower()
+    if provider != "twilio":
+        raise ProviderNotConfiguredError(
+            f"Telephony provider '{provider}' is not implemented; available: twilio"
+        )
     if not (settings.twilio_account_sid and settings.twilio_auth_token):
         raise ProviderNotConfiguredError("Twilio credentials are not configured")
     from app.integrations.twilio.provider import TwilioProvider
@@ -58,7 +80,19 @@ def get_telephony() -> TelephonyProvider:
     )
 
 
+@lru_cache
 def get_embedding_model() -> EmbeddingProvider:
+    provider = settings.embedding_provider.lower()
+    if provider == "hashing":
+        from app.integrations.embeddings.hashing import HashingEmbedding
+
+        return HashingEmbedding(dimension=settings.embedding_dimension)
     raise ProviderNotConfiguredError(
-        "Embedding provider is not configured; configure one for knowledge-base RAG."
+        f"Embedding provider '{provider}' is not implemented; available: hashing"
     )
+
+
+def reset_provider_cache() -> None:
+    """Clear cached instances (used by tests and after a settings reload)."""
+    for getter in (get_llm, get_stt, get_tts, get_telephony, get_embedding_model):
+        getter.cache_clear()

@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { SUPPORTED_LANGUAGES } from "@nenuaikadu/shared";
+import { SUPPORTED_LANGUAGES } from "@VoiceAI/shared";
 import { useCreateAgent, useUpdateAgent } from "@/hooks/use-agents";
 import type { Agent } from "@/types/agent";
 

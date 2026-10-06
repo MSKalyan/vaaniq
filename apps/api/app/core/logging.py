@@ -40,5 +40,6 @@ def setup_logging(*, debug: bool | None = None) -> None:
     )
 
 
-def get_logger(name: str = "nenuaikadu") -> structlog.stdlib.BoundLogger:
-    return structlog.get_logger(name)
+def get_logger(name: str = "VoiceAI") -> structlog.stdlib.BoundLogger:
+    logger: structlog.stdlib.BoundLogger = structlog.get_logger(name)
+    return logger

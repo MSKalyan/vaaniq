@@ -67,7 +67,10 @@ async def initiate_call(
     db.add(call)
     await db.flush()
 
-    stream_url = f"{settings.twilio_webhook_base_url}/api/v1/ws/calls/{call.id}/live"
+    # The call UUID in the path is the stream's capability token (see api/routes/ws.py).
+    stream_url = (
+        f"{settings.twilio_webhook_base_url}{settings.api_v1_prefix}/ws/calls/{call.id}/live"
+    )
 
     try:
         provider_call_id = await telephony.initiate_call(

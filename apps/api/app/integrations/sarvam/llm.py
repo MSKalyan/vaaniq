@@ -1,18 +1,17 @@
 """Sarvam conversational LLM provider.
 
-Endpoint: POST {base}/v1/chat/completions  (V1, Sarvam models)
-Models:   sarvam-105b, sarvam-105b-conversations (voice-agent workload)
-Structured output via response_format: {"type":"json_schema","json_schema":{...}}
-Reference: https://docs.sarvam.ai/api-reference/chat/chat-completions-v1
+Endpoint: POST {base}/v1/chat/completions  (V1 — sarvam-105b, sarvam-105b-conversations)
+Models:   `sarvam-105b-conversations` is post-trained for realtime dialogue and is the
+          default for the voice-agent workload.
+Structured output via `response_format: {"type": "json_schema", "json_schema": {...}}`.
+Reference: https://docs.sarvam.ai/api/api-guides-tutorials/chat-completion/overview
 """
 
 from typing import Any
 
-import httpx
-
 from app.core.config import settings
 from app.integrations.base import LLMProvider
-from app.integrations.sarvam.client import SarvamError
+from app.integrations.sarvam.client import SarvamError, headers, post_json
 
 
 class SarvamLLM(LLMProvider):
@@ -24,16 +23,20 @@ class SarvamLLM(LLMProvider):
         api_key: str | None = None,
     ) -> None:
         self.model = model or settings.sarvam_llm_model
-        self.base_url = (base_url or settings.sarvam_base_url).rstrip("/")
-        self._api_key = api_key or settings.sarvam_api_key
+        self._base_url = base_url
+        self._api_key = api_key
 
-    def _headers(self) -> dict[str, str]:
-        if not self._api_key:
-            raise SarvamError("SARVAM_API_KEY is not configured")
-        return {
-            "api-subscription-key": self._api_key,
-            "Content-Type": "application/json",
-        }
+    @property
+    def model_name(self) -> str:
+        return self.model
+
+    def _request_headers(self) -> dict[str, str]:
+        if self._api_key:
+            return {
+                "api-subscription-key": self._api_key,
+                "Content-Type": "application/json",
+            }
+        return headers()
 
     async def generate(
         self,
@@ -54,19 +57,17 @@ class SarvamLLM(LLMProvider):
         if response_format is not None:
             payload["response_format"] = response_format
 
-        url = f"{self.base_url}/v1/chat/completions"
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(url, json=payload, headers=self._headers())
-        except httpx.HTTPError as exc:
-            raise SarvamError(f"Sarvam LLM transport error: {exc}") from exc
+        body = await post_json(
+            "/v1/chat/completions",
+            payload,
+            request_headers=self._request_headers(),
+            base_url_override=self._base_url,
+        )
 
-        if resp.status_code >= 400:
-            raise SarvamError(f"Sarvam LLM error {resp.status_code}: {resp.text[:300]}")
-
-        body = resp.json()
         try:
             content = body["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as exc:
+        except (KeyError, IndexError, TypeError) as exc:
             raise SarvamError("Sarvam LLM response missing choices[0].message.content") from exc
+        if not isinstance(content, str):
+            raise SarvamError("Sarvam LLM response content was not a string")
         return content

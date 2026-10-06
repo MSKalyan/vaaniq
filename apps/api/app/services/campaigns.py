@@ -116,14 +116,34 @@ async def list_campaigns(db: AsyncSession, *, user_id: uuid.UUID) -> list[Campai
     result = await db.scalars(
         select(Campaign).where(Campaign.user_id == user_id).order_by(Campaign.created_at.desc())
     )
-    campaigns = list(result)
-    # Attach lead counts in one query per campaign set.
-    counts = await db.execute(
+    return list(result)
+
+
+async def count_leads(db: AsyncSession, campaign_id: uuid.UUID) -> int:
+    """Number of leads enrolled in a campaign."""
+    value = await db.scalar(
+        select(func.count(CampaignLead.id)).where(CampaignLead.campaign_id == campaign_id)
+    )
+    return int(value or 0)
+
+
+async def lead_counts(db: AsyncSession, campaign_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
+    """Lead counts for many campaigns in a single query."""
+    if not campaign_ids:
+        return {}
+    rows = await db.execute(
         select(CampaignLead.campaign_id, func.count(CampaignLead.id))
-        .where(CampaignLead.campaign_id.in_([c.id for c in campaigns]))
+        .where(CampaignLead.campaign_id.in_(campaign_ids))
         .group_by(CampaignLead.campaign_id)
     )
-    count_map = {str(cid): n for cid, n in counts.all()}
-    for c in campaigns:
-        c._lead_count = count_map.get(str(c.id), 0)
-    return campaigns
+    return {cid: int(n) for cid, n in rows.all()}
+
+
+async def list_campaign_leads(db: AsyncSession, campaign_id: uuid.UUID) -> list[CampaignLead]:
+    """Enrollment rows for a campaign (used by the campaign detail view)."""
+    result = await db.scalars(
+        select(CampaignLead)
+        .where(CampaignLead.campaign_id == campaign_id)
+        .order_by(CampaignLead.created_at)
+    )
+    return list(result)

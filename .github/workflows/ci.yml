@@ -37,22 +37,21 @@ jobs:
         working-directory: apps/web
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      # npm, not pnpm: the committed lockfile is package-lock.json. Switching the
+      # package manager requires regenerating the lockfile, not just the workflow.
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: apps/web/pnpm-lock.yaml
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
       - name: Install deps
-        run: pnpm install --frozen-lockfile
+        run: npm ci
       - name: ESLint
-        run: pnpm lint
+        run: npm run lint
       - name: Typecheck
-        run: pnpm typecheck
+        run: npm run typecheck
       - name: Vitest
-        run: pnpm test
+        run: npm run test
 
   docker:
     name: Docker build

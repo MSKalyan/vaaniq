@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.models.user import User
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services import chat as chat_service
+from app.services.agents import AgentNotFoundError
 
 router = APIRouter()
 
@@ -20,7 +21,7 @@ async def agent_chat(
 ) -> ChatResponse:
     try:
         return await chat_service.chat(db, agent_id=data.agent_id, user_id=user.id, data=data)
-    except chat_service.AgentNotFoundError as exc:
+    except AgentNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from None
     except ValueError as exc:
         # Invalid UUID or unconfigured provider.

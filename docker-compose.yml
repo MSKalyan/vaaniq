@@ -1,18 +1,16 @@
-version: "3.9"
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-nenu}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nenu}
-      POSTGRES_DB: ${POSTGRES_DB:-nenuaikadu}
+      POSTGRES_DB: ${POSTGRES_DB:-VoiceAI}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nenu} -d ${POSTGRES_DB:-nenuaikadu}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nenu} -d ${POSTGRES_DB:-VoiceAI}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -31,10 +29,15 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nenu}:${POSTGRES_PASSWORD:-nenu}@postgres:5432/${POSTGRES_DB:-nenuaikadu}
-      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-nenu}:${POSTGRES_PASSWORD:-nenu}@postgres:5432/${POSTGRES_DB:-nenuaikadu}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER:-nenu}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-nenu}
+      DATABASE_NAME: ${POSTGRES_DB:-VoiceAI}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -50,15 +53,21 @@ services:
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./apps/api:/code
+      - /code/.venv
 
   worker:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nenu}:${POSTGRES_PASSWORD:-nenu}@postgres:5432/${POSTGRES_DB:-nenuaikadu}
-      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-nenu}:${POSTGRES_PASSWORD:-nenu}@postgres:5432/${POSTGRES_DB:-nenuaikadu}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER:-nenu}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-nenu}
+      DATABASE_NAME: ${POSTGRES_DB:-VoiceAI}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -70,21 +79,37 @@ services:
     command: celery -A app.workers.celery_app.celery_app worker --loglevel=info
     volumes:
       - ./apps/api:/code
+      - /code/.venv
 
   frontend:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.frontend
     environment:
+      NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
     ports:
       - "3000:3000"
     depends_on:
       - backend
-    command: pnpm dev --hostname 0.0.0.0
+    command: npm run dev -- --hostname 0.0.0.0
     volumes:
       - ./apps/web:/app
+      - ./packages:/packages
       - /app/node_modules
+
+  # Public tunnel for Twilio webhooks + media-stream WebSocket.
+  # Start with: docker compose --profile ngrok up -d
+  ngrok:
+    image: ngrok/ngrok:alpine
+    profiles: ["ngrok"]
+    restart: unless-stopped
+    volumes:
+      - ./infra/ngrok/ngrok.yml:/etc/ngrok/ngrok.yml:ro
+    command: ["start", "--all", "--config", "/etc/ngrok/ngrok.yml"]
+    depends_on:
+      backend:
+        condition: service_started
 
 volumes:
   pgdata:

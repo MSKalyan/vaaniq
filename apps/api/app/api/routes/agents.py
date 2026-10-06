@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.models.agent import Agent, AgentVoice
 from app.models.user import User
 from app.repositories import agents as repo
 from app.schemas.agent import AgentCreate, AgentOut, AgentUpdate, AgentVoiceOut
@@ -19,7 +20,7 @@ router = APIRouter()
 async def list_agents(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> list[AgentOut]:
+) -> list[Agent]:
     return await service.list_agents(db, user_id=user.id)
 
 
@@ -28,7 +29,7 @@ async def create_agent(
     data: AgentCreate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> AgentOut:
+) -> Agent:
     return await service.create_agent(db, user_id=user.id, data=data)
 
 
@@ -36,7 +37,7 @@ async def create_agent(
 async def list_voices(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
-) -> list[AgentVoiceOut]:
+) -> list[AgentVoice]:
     return await repo.list_voices(db)
 
 
@@ -45,7 +46,7 @@ async def get_agent(
     agent_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> AgentOut:
+) -> Agent:
     try:
         return await service.get_agent(db, agent_id=agent_id, user_id=user.id)
     except service.AgentNotFoundError as exc:
@@ -58,7 +59,7 @@ async def update_agent(
     data: AgentUpdate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> AgentOut:
+) -> Agent:
     try:
         return await service.update_agent(db, agent_id=agent_id, user_id=user.id, data=data)
     except service.AgentNotFoundError as exc:

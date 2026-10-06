@@ -56,7 +56,8 @@ async def authenticate(db: AsyncSession, data: LoginRequest) -> User:
 async def issue_token_pair(db: AsyncSession, user: User) -> TokenPair:
     access = create_access_token(str(user.id))
     refresh = create_refresh_token(str(user.id))
-    await db.add(
+    # AsyncSession.add() is synchronous — it stages the object for the next flush.
+    db.add(
         RefreshToken(
             user_id=user.id,
             token_hash=_hash_refresh(refresh),

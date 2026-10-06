@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, ForeignKey, String, Text
+from sqlalchemy import JSON, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -36,7 +36,9 @@ class Call(Base):
     state: Mapped[CallState] = mapped_column(
         String(24), default=CallState.INITIALIZING, index=True, nullable=False
     )
-    outcome: Mapped[CallOutcome | None] = mapped_column(nullable=True, index=True)
+    outcome: Mapped[CallOutcome | None] = mapped_column(
+        Enum(CallOutcome, native_enum=False, length=24), nullable=True, index=True
+    )
     status: Mapped[str] = mapped_column(String(24), default="INITIALIZING", nullable=False)
     direction: Mapped[str] = mapped_column(String(12), default="outbound", nullable=False)
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)

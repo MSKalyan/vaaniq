@@ -1,12 +1,9 @@
-"""Health/readiness endpoint used by Docker healthchecks and orchestration."""
-
 from fastapi import APIRouter
-
-from app.core.config import settings
 
 router = APIRouter()
 
 
-@router.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok", "app": settings.app_name, "env": settings.app_env}
+@router.get("/readyz", tags=["health"], summary="Readiness probe")
+async def readiness() -> dict[str, str]:
+    """Kubernetes-style readiness probe."""
+    return {"status": "ready"}

@@ -7,9 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
-  transpilePackages: ["@nenuaikadu/shared"],
+  transpilePackages: ["@VoiceAI/shared"],
   webpack: (config) => {
-    config.resolve.alias["@nenuaikadu/shared"] = path.resolve(
+    config.resolve.alias["@VoiceAI/shared"] = path.resolve(
       __dirname,
       "../../packages/shared/index.ts",
     );

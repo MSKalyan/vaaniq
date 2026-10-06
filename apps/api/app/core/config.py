@@ -6,8 +6,9 @@ Secrets never leave the server; nothing here is returned to the frontend.
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import URL
 
 
 class Settings(BaseSettings):
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     # --- App ---
-    app_name: str = "NenuAIKadu"
+    app_name: str = "VoiceAI"
     app_env: str = "development"
     debug: bool = True
     api_v1_prefix: str = "/api/v1"
@@ -27,8 +28,35 @@ class Settings(BaseSettings):
     backend_url: str = "http://localhost:8000"
 
     # --- Database ---
-    database_url: str = "postgresql+asyncpg://nenu:nenu@localhost:5432/nenuaikadu"
-    database_url_sync: str = "postgresql+psycopg2://nenu:nenu@localhost:5432/nenuaikadu"
+    database_url: str = "postgresql+asyncpg://nenu:nenu@localhost:5432/VoiceAI"
+    database_url_sync: str = "postgresql+psycopg2://nenu:nenu@localhost:5432/VoiceAI"
+
+    database_host: str | None = None
+    database_port: int = 5432
+    database_user: str = "nenu"
+    database_password: str = "nenu"
+    database_name: str = "VoiceAI"
+
+    @model_validator(mode="after")
+    def build_database_urls(self) -> "Settings":
+        if self.database_host is not None:
+            self.database_url = URL.create(
+                "postgresql+asyncpg",
+                username=self.database_user,
+                password=self.database_password,
+                host=self.database_host,
+                port=self.database_port,
+                database=self.database_name,
+            ).render_as_string(hide_password=False)
+            self.database_url_sync = URL.create(
+                "postgresql+psycopg2",
+                username=self.database_user,
+                password=self.database_password,
+                host=self.database_host,
+                port=self.database_port,
+                database=self.database_name,
+            ).render_as_string(hide_password=False)
+        return self
 
     # --- Redis ---
     redis_url: str = "redis://localhost:6379/0"
@@ -42,6 +70,18 @@ class Settings(BaseSettings):
 
     # --- CORS ---
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+
+    # --- Provider selection ---
+    # Swap a capability by changing one env var; no call site changes.
+    llm_provider: str = "sarvam"
+    stt_provider: str = "sarvam"
+    tts_provider: str = "sarvam"
+    telephony_provider: str = "twilio"
+    # `hashing` is the offline default (no API key, lexical only).
+    embedding_provider: str = "hashing"
+    # Must match knowledge_chunks.embedding's width in migration 0001 (Vector(1536)),
+    # which is also the width of common hosted embedding models.
+    embedding_dimension: int = 1536
 
     # --- Sarvam AI ---
     sarvam_api_key: str = ""

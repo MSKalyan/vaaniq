@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.enums import LeadStatus
+from app.models.lead import Lead
 from app.models.user import User
 from app.schemas.lead import ImportResult, LeadCreate, LeadOut, LeadUpdate
 from app.services import leads as service
@@ -23,7 +24,8 @@ async def list_leads(
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> list[LeadOut]:
+) -> list[Lead]:
+    # response_model serializes the ORM rows into LeadOut.
     return await service.list_leads(db, user_id=user.id, status=status, limit=limit, offset=offset)
 
 
@@ -32,7 +34,7 @@ async def create_lead(
     data: LeadCreate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> LeadOut:
+) -> Lead:
     try:
         return await service.create_lead(db, user_id=user.id, data=data)
     except service.DuplicateLeadError as exc:
@@ -85,7 +87,7 @@ async def get_lead(
     lead_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> LeadOut:
+) -> Lead:
     try:
         return await service.get_lead(db, lead_id=lead_id, user_id=user.id)
     except service.LeadNotFoundError as exc:
@@ -98,7 +100,7 @@ async def update_lead(
     data: LeadUpdate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> LeadOut:
+) -> Lead:
     try:
         return await service.update_lead(db, lead_id=lead_id, user_id=user.id, data=data)
     except service.LeadNotFoundError as exc:

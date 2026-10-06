@@ -1,0 +1,10 @@
+version: "3"
+agent:
+  authtoken: 3KKVnkeRY71ZBL6JQla9gdq5kt7_4YUX7szm8aseQgB3jqfmf
+endpoints:
+  - name: voiceai-backend
+    url: https://family-pretense-stamina.ngrok-free.dev
+    upstream:
+      # `backend` is the compose service name; the ngrok container reaches it on the
+      # shared network. Running ngrok on the host instead? use http://localhost:8000
+      url: http://backend:8000

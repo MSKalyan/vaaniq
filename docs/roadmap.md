@@ -1,6 +1,6 @@
 # Roadmap
 
-Phased implementation of the NenuAIKadu MVP. Each phase ends with a working,
+Phased implementation of the VoiceAI MVP. Each phase ends with a working,
 testable vertical slice. Do not move on until the previous phase's Definition of
 Done is satisfied.
 

@@ -10,6 +10,7 @@ import csv
 import io
 import uuid
 from dataclasses import dataclass, field
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,10 +32,12 @@ class ImportSummary:
     imported: int = 0
     duplicates: int = 0
     invalid: int = 0
-    errors: list[dict] = field(default_factory=list)
+    errors: list[dict[str, Any]] = field(default_factory=list)
 
 
-def _validate_row(row: dict, row_number: int, errors: list[dict]) -> dict | None:
+def _validate_row(
+    row: dict[str, Any], row_number: int, errors: list[dict[str, Any]]
+) -> dict[str, Any] | None:
     phone = (row.get("phone_number") or "").strip()
     if not phone:
         errors.append({"row": row_number, "reason": "missing phone_number", "raw": row})

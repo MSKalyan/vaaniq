@@ -1,4 +1,4 @@
-# NenuAIKadu
+# VoiceAI
 
 An Outpero-style AI outbound voice calling platform for Indian businesses. Creates AI voice agents that call leads, converse in Indian regional languages (and code-mixed speech), and drive the conversation end-to-end — from STT to LLM to TTS — over a telephony provider.
 
@@ -54,7 +54,22 @@ make dev               # backend + frontend + worker
 
 Open http://localhost:3000 (web) and http://localhost:8000/docs (API).
 
-For Twilio webhooks in local dev, point `TWILIO_WEBHOOK_BASE_URL` at an `ngrok` tunnel to port 8000.
+### Twilio webhooks in local dev (ngrok)
+
+Twilio must reach the API over a public `https://` URL for status callbacks and the
+`wss://` media stream, so the stack ships an ngrok tunnel (`infra/ngrok/ngrok.yml`,
+static domain `https://family-pretense-stamina.ngrok-free.dev` → backend `:8000`).
+
+```bash
+make docker-up     # or: docker compose up --build
+make tunnel         # or: docker compose --profile ngrok up -d ngrok
+# .env must contain: TWILIO_WEBHOOK_BASE_URL=https://family-pretense-stamina.ngrok-free.dev
+docker compose restart backend worker   # pick up .env changes (settings load at boot)
+curl https://family-pretense-stamina.ngrok-free.dev/api/v1/readyz
+```
+
+No Twilio console wiring is needed: the status callback and TwiML (with the per-call
+media-stream URL) are sent inline with each `Calls.json` request.
 
 ## Services / Make targets
 
@@ -67,6 +82,7 @@ For Twilio webhooks in local dev, point `TWILIO_WEBHOOK_BASE_URL` at an `ngrok` 
 | `make db-migrate-autogen m="msg"` | Autogen a migration |
 | `make test` / `lint` / `typecheck` | Full quality gates |
 | `make docker-up` | Full dev stack via Compose |
+| `make tunnel` | ngrok tunnel for Twilio webhooks (:8000) |
 | `make backup` | pg_dump to scripts/backups |
 
 ## Repository layout

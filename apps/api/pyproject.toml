@@ -1,7 +1,7 @@
 [project]
-name = "nenuaikadu-api"
+name = "VoiceAI-api"
 version = "0.1.0"
-description = "NenuAIKadu backend — AI outbound voice calling platform"
+description = "VoiceAI backend — AI outbound voice calling platform"
 requires-python = ">=3.12"
 license = { text = "Proprietary" }
 dependencies = [
@@ -53,7 +53,9 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "ASYNC", "S"]
 ignore = ["B008"]  # FastAPI Depends() in defaults is intentional
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]  # assert is correct in tests
+# S101: assert is correct in tests. S105/S106: test fixtures use obviously fake
+# credentials, and flagging them buries real findings.
+"tests/**" = ["S101", "S105", "S106"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -64,6 +66,12 @@ plugins = ["pydantic.mypy"]
 strict = true
 mypy_path = "app"
 exclude = ["alembic/", "tests/"]
+
+# Third-party packages that ship no type information. Their surface is wrapped by
+# our own typed interfaces, so only the import boundary needs silencing.
+[[tool.mypy.overrides]]
+module = ["celery.*", "jose.*", "boto3.*", "botocore.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

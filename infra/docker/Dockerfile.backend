@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+ENV PATH="/code/.venv/bin:$PATH"
+
 WORKDIR /code
 
 # Install deps first for layer caching
