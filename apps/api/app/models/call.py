@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Enum, ForeignKey, String, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -42,8 +42,8 @@ class Call(Base):
     status: Mapped[str] = mapped_column(String(24), default="INITIALIZING", nullable=False)
     direction: Mapped[str] = mapped_column(String(12), default="outbound", nullable=False)
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    started_at: Mapped[datetime | None] = mapped_column(nullable=True)
-    ended_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     duration_seconds: Mapped[int | None] = mapped_column(nullable=True)
     # Latency metrics: STT/LLM/TTS/total per the observability requirements
     latency_ms: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
@@ -86,8 +86,8 @@ class CallRecording(Base):
     storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     recording_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration: Mapped[int | None] = mapped_column(nullable=True)
-    started_at: Mapped[datetime | None] = mapped_column(nullable=True)
-    ended_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[str] = mapped_column(String(24), default="PENDING", nullable=False)
     created_at: Mapped[datetime] = created_at_col()
 
@@ -110,7 +110,7 @@ class CallAnalysis(Base):
     objections: Mapped[list[Any]] = mapped_column(JSON, nullable=False, default=list)
     next_action: Mapped[str | None] = mapped_column(Text, nullable=True)
     callback_required: Mapped[bool] = mapped_column(default=False, nullable=False)
-    callback_time: Mapped[datetime | None] = mapped_column(nullable=True)
+    callback_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     hllm_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = created_at_col()
 

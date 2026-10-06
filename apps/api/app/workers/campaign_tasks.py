@@ -19,9 +19,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
-from app.core.database import engine
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.models.call import Call
 from app.models.campaign import Campaign, CampaignLead
@@ -30,6 +31,12 @@ from app.services.call_init import initiate_call
 from app.workers.celery_app import celery_app
 
 logger = get_logger("campaigns.worker")
+
+# Celery runs every task through asyncio.run(), i.e. a fresh event loop. Connections
+# cached by the shared pooled engine would belong to a previous, now-closed loop, so
+# the worker uses NullPool: open and close a connection on each checkout, inside the
+# current task's loop.
+engine = create_async_engine(settings.database_url, echo=settings.debug, poolclass=NullPool)
 
 session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
@@ -97,7 +104,7 @@ async def _process_campaign_once(campaign_id: uuid.UUID) -> int:
                     campaign_lead=campaign_lead,
                     user_id=campaign.user_id,
                 )
-                if call is not None and call.state.name != "FAILED":
+                if call is not None and call.state != CallState.FAILED:
                     initiated += 1
             except Exception as exc:  # noqa: BLE001 - one bad lead must not stop the batch
                 logger.error(
@@ -174,10 +181,13 @@ async def _has_pending_work(campaign_id: uuid.UUID) -> bool:
         campaign = await db.get(Campaign, campaign_id)
         if campaign is None or campaign.status != CampaignStatus.RUNNING:
             return False
+        now = datetime.now(UTC)
         value = await db.scalar(
             select(func.count(CampaignLead.id)).where(
                 CampaignLead.campaign_id == campaign_id,
                 CampaignLead.status.in_([LeadStatus.NEW, LeadStatus.QUEUED]),
+                # Only leads that are dialable right now (backoff elapsed).
+                (CampaignLead.next_attempt_at.is_(None)) | (CampaignLead.next_attempt_at <= now),
             )
         )
         return int(value or 0) > 0

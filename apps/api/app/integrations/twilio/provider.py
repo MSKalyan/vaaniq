@@ -60,11 +60,27 @@ class TwilioProvider(TelephonyProvider):
         return f"{self.api_base}/2010-04-01/Accounts/{self.account_sid}/Calls/{call_id}.json"
 
     # ----- TwiML -----
-    def _stream_twiml(self, stream_url: str, *, track: str = "both_tracks") -> str:
-        """Bidirectional <Connect><Stream> — Twilio sends audio to us and accepts
-        audio we send back, which is what drives the voice pipeline."""
-        return (
-            f'<Response><Connect><Stream url="{stream_url}" track="{track}" /></Connect></Response>'
+    def _stream_twiml(
+        self,
+        stream_url: str,
+        *,
+        track: str = "inbound_track",
+        status_callback_url: str | None = None,
+    ) -> str:
+        """Bidirectional <Connect><Stream> — Twilio sends us the caller's (inbound)
+        audio and accepts audio we send back, which drives the voice pipeline.
+
+        Twilio only accepts `track="inbound_track"` on a bidirectional <Connect>;
+        `both_tracks`/`outbound_track` are rejected with error 31941.
+        """
+        callback = f' statusCallback="{status_callback_url}"' if status_callback_url else ""
+        return "".join(
+            [
+                f'<Response><Connect><Stream url="{stream_url}"',
+                f' track="{track}"',
+                callback,
+                " /></Connect></Response>",
+            ]
         )
 
     async def _post(self, url: str, form: FormData) -> dict[str, Any]:
@@ -130,7 +146,13 @@ class TwilioProvider(TelephonyProvider):
         form: list[tuple[str, str]] = [
             ("To", to_phone),
             ("From", caller),
-            ("Twiml", self._stream_twiml(resolved_stream_url)),
+            (
+                "Twiml",
+                self._stream_twiml(
+                    resolved_stream_url,
+                    status_callback_url=(f"{self.webhook_base_url}/api/v1/webhooks/twilio/stream"),
+                ),
+            ),
             ("StatusCallback", status_callback),
             ("StatusCallbackMethod", "POST"),
             ("StatusCallbackEvent[]", "initiated"),

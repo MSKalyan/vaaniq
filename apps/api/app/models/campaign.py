@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -25,8 +25,8 @@ class Campaign(Base):
     status: Mapped[CampaignStatus] = mapped_column(
         String(24), default=CampaignStatus.DRAFT, index=True, nullable=False
     )
-    start_time: Mapped[datetime | None] = mapped_column(nullable=True)
-    end_time: Mapped[datetime | None] = mapped_column(nullable=True)
+    start_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     max_concurrent_calls: Mapped[int] = mapped_column(default=5, nullable=False)
     retry_attempts: Mapped[int] = mapped_column(default=2, nullable=False)
     retry_delay_minutes: Mapped[int] = mapped_column(default=30, nullable=False)
@@ -55,8 +55,8 @@ class CampaignLead(Base):
     )
     status: Mapped[LeadStatus] = mapped_column(String(24), default=LeadStatus.NEW, nullable=False)
     attempts: Mapped[int] = mapped_column(default=0, nullable=False)
-    last_attempt_at: Mapped[datetime | None] = mapped_column(nullable=True)
-    next_attempt_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = created_at_col()
 
     campaign = relationship("Campaign", back_populates="campaign_leads")

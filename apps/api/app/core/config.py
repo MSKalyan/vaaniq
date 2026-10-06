@@ -117,6 +117,10 @@ class Settings(BaseSettings):
     # --- Call defaults ---
     default_max_call_duration_seconds: int = 600
     default_silence_timeout_seconds: int = 8
+    # National numbers (e.g. 10-digit Indian mobiles) are prefixed with this to
+    # form E.164 before dialing. Twilio silently maps bare numbers to the
+    # account's home country otherwise.
+    default_country_code: str = "91"
 
     @property
     def has_sarvam_credentials(self) -> bool:

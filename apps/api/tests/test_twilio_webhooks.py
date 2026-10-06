@@ -98,7 +98,7 @@ def test_stream_twiml_is_bidirectional():
     twiml = _provider()._stream_twiml("wss://host/api/v1/ws/calls/abc/live")
 
     assert "<Connect><Stream" in twiml
-    assert 'track="both_tracks"' in twiml
+    assert 'track="inbound_track"' in twiml
     assert urlsplit("wss://host/x").scheme == "wss"
 
 

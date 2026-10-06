@@ -32,7 +32,9 @@ class CustomerMemory(Base):
     location: Mapped[str | None] = mapped_column(String(120), nullable=True)
     requirements: Mapped[list[Any]] = mapped_column(JSON, nullable=False, default=list)
     interest_level: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    preferred_callback_time: Mapped[datetime | None] = mapped_column(nullable=True)
+    preferred_callback_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     previous_call_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = updated_at_col()
 

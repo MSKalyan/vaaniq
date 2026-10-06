@@ -16,6 +16,7 @@ Reference: https://docs.sarvam.ai/api/api-guides-tutorials/speech-to-text/realti
 import asyncio
 import base64
 import json
+from collections import deque
 from collections.abc import AsyncIterator
 from typing import Any, cast
 from urllib.parse import urlencode
@@ -28,6 +29,9 @@ from app.integrations.base import STTProvider
 from app.integrations.sarvam.client import SarvamError
 
 _MAX_MESSAGE_BYTES = 2 * 1024 * 1024
+# Frames held while the STT websocket is still connecting (~160 frames/s).
+# ~25 seconds of 8kHz/253-byte frames ≈ 4000; keep a generous margin.
+_PENDING_MAX_FRAMES = 4000
 
 
 class SarvamRealtimeSTT(STTProvider):
@@ -67,6 +71,10 @@ class SarvamRealtimeSTT(STTProvider):
 
         self._ws: Any | None = None
         self._audio_queue: asyncio.Queue[bytes | None] | None = None
+        # Inbound audio received before transcribe_stream() has opened the socket is
+        # buffered here (in order) and flushed into _audio_queue once connected, so
+        # the caller's first words are never dropped and feed_audio never raises.
+        self._pending: deque[bytes] | None = deque()
         self._send_lock = asyncio.Lock()
 
     def _build_url(self) -> str:
@@ -98,12 +106,28 @@ class SarvamRealtimeSTT(STTProvider):
             max_size=_MAX_MESSAGE_BYTES,
         )
         self._audio_queue = asyncio.Queue()
+        pending = self._pending
+        if pending:
+            for chunk in list(pending):
+                self._audio_queue.put_nowait(chunk)
+            pending.clear()
 
     async def feed_audio(self, chunk: bytes) -> None:
-        """Queue an inbound audio chunk for transmission to Sarvam."""
-        if self._audio_queue is None:
-            raise RuntimeError("STT stream not started: await transcribe_stream() first")
-        await self._audio_queue.put(chunk)
+        """Queue an inbound audio chunk for transmission to Sarvam.
+
+        Transports can feed audio as soon as the Twilio stream starts, even before
+        `transcribe_stream()` has finished connecting: chunks are buffered in order
+        and flushed once the socket is ready. After `close()`, chunks are dropped.
+        """
+        q = self._audio_queue
+        if q is not None:
+            await q.put(chunk)
+            return
+        pending = self._pending
+        if pending is None:
+            return  # already closed
+        if len(pending) < _PENDING_MAX_FRAMES:
+            pending.append(chunk)
 
     async def _sender(self) -> None:
         if self._ws is None or self._audio_queue is None:
@@ -201,3 +225,4 @@ class SarvamRealtimeSTT(STTProvider):
         finally:
             self._ws = None
             self._audio_queue = None
+            self._pending = None

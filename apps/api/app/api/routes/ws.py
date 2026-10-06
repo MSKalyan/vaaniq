@@ -15,6 +15,7 @@ import uuid
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.database import async_session_factory
 from app.core.logging import get_logger
@@ -40,10 +41,14 @@ async def _load_call(call_id: str, call_sid: str | None) -> Call:
         conditions = [Call.id == call_uuid]
         if call_sid:
             conditions.append(Call.provider_call_id == call_sid)
-        call = await db.scalar(select(Call).where(*conditions))
+        call = await db.scalar(select(Call).options(selectinload(Call.agent)).where(*conditions))
         if call is None:
             raise ValueError("Call not found for this stream")
         if call.agent_id is None:
+            raise ValueError("Call has no agent configured")
+        # The agent must be loaded before detaching: the bridge builds its
+        # orchestrator from the call after the session is closed.
+        if call.agent is None:
             raise ValueError("Call has no agent configured")
         # Detach from the session: the bridge runs on its own sessions.
         db.expunge(call)
@@ -94,5 +99,8 @@ async def call_stream(
     except ValueError as exc:
         logger.warning("ws_rejected", call_id=call_id, reason=str(exc))
         await websocket.close(code=4000, reason=str(exc))
+    except Exception as exc:  # noqa: BLE001 - keep the socket from silently dying
+        logger.error("ws_error", call_id=call_id, error=str(exc))
+        await websocket.close(code=1011, reason=str(exc))
     except WebSocketDisconnect:
         return

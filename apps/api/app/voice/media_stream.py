@@ -79,24 +79,39 @@ class MediaStreamBridge:
         try:
             while not self._stop:
                 raw = await self.ws.receive_text()
-                await self._handle_message(json.loads(raw))
+                await self._dispatch(json.loads(raw))
         except WebSocketDisconnect:
             logger.info("twilio_ws_disconnect", call_sid=self._call_sid)
         except json.JSONDecodeError:
             logger.warning("media_stream_bad_json")
         except Exception as exc:  # noqa: BLE001 - never let the bridge kill the worker
             logger.warning("media_stream_error", error=str(exc))
+
+        # NOTE: a message-handling error must never close this websocket, because a
+        # closed media stream makes Twilio hang up the call. Only the until-loop
+        # above exiting (disconnect or Twilio's `stop`) reaches the teardown below.
+
         finally:
             self._stop = True
             await self.orch.close()
             for task in (stt_task, turn_task):
                 task.cancel()
-                with contextlib.suppress(asyncio.CancelledError, Exception):
-                    await task
+                with contextlib.suppress(asyncio.CancelledError):
+                    try:
+                        await task
+                    except Exception as exc:  # noqa: BLE001 - surface pipeline failures
+                        logger.error("orchestrator_task_error", error=str(exc))
             await self._flush_latency()
             await self._flush_transcript()
             with contextlib.suppress(Exception):
                 await self.ws.close()
+
+    async def _dispatch(self, msg: dict[str, Any]) -> None:
+        """Handle one Twilio message, isolating per-message failures."""
+        try:
+            await self._handle_message(msg)
+        except Exception as exc:  # noqa: BLE001 - skip the bad message, keep the call live
+            logger.warning("media_stream_msg_error", error=str(exc))
 
     # ----- outbound -----
     async def _send_json(self, message: dict[str, Any]) -> None:

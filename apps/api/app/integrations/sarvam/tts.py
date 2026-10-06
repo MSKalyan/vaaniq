@@ -1,6 +1,6 @@
 """Sarvam streaming TTS (WebSocket) provider.
 
-Endpoint: wss://api.sarvam.ai/text-to-speech
+Endpoint: wss://api.sarvam.ai/text-to-speech/ws
 Client -> server: {"type": "config", "data": {...}} then {"type": "text", "data": {"text"}}
                   then {"type": "flush"}
 Server -> client: {"type": "audio", "data": {"audio": "<base64 chunk>"}} progressively,
@@ -49,8 +49,8 @@ class SarvamTTS(TTSProvider):
     ) -> None:
         self.model = model or settings.sarvam_tts_model
         host = re.sub(r"^https?://", "", settings.sarvam_base_url.rstrip("/"))
-        self.wss_url = wss_url or f"wss://{host}/text-to-speech"
-        self.api_key = api_key or settings.sarvam_api_key
+        self.wss_url = wss_url or f"wss://{host}/text-to-speech/ws"
+        self.api_key = api_key if api_key is not None else settings.sarvam_api_key
         self.voice = voice or settings.sarvam_tts_voice
         self.language = language
         self.pace = pace
@@ -77,14 +77,21 @@ class SarvamTTS(TTSProvider):
         if not self.api_key:
             raise SarvamError("SARVAM_API_KEY is not configured")
 
+        lang: str | None = language or self.language
+        if lang == "auto":
+            # "auto" is meaningful for STT/LLM dispatch, but Sarvam TTS needs a
+            # concrete BCP-47 code; fall back to the provider default (en-IN).
+            lang = self.language
+
         config_data: dict[str, Any] = {
             "speaker": voice or self.voice,
-            "language_code": language or self.language,
+            "language_code": lang,
             "pace": self.pace,
             "output_audio_codec": self.output_codec,
+            "speech_sample_rate": self.sample_rate,
         }
-        # Sample rate is implied by output_audio_codec (mulaw = 8kHz, wav = 22.05kHz);
-        # the config message has no separate speech_sample_rate field.
+        # bulbul:v3 defaults to 24kHz, so the telephony rate (8kHz) must be sent
+        # explicitly or Twilio will play 24kHz-sampled audio ~3x too slow (growl).
 
         try:
             async with websockets.connect(

@@ -250,6 +250,7 @@ class ConversationOrchestrator:
     # ----- main turn loop -----
     async def run(self) -> None:
         """Process finalized utterances until the call ends or `close` is called."""
+        await self._ensure_connected()
         deadline = time.monotonic() + self.max_call_duration_s
         await self.state.transition(CallState.GREETING)
         if self.greeting:
@@ -268,6 +269,17 @@ class ConversationOrchestrator:
             if utterance is None:
                 break
             await self._process_turn(utterance)
+
+    async def _ensure_connected(self) -> None:
+        """Put the state machine at CONNECTED before starting the voice flow.
+
+        Telephony has already connected the call before the orchestrator runs, so an
+        untouched (INITIALIZING/RINGING) machine is advanced to CONNECTED; already-
+        connected machines are left alone. GREETING/LISTENING must follow CONNECTED.
+        """
+        for target in (CallState.RINGING, CallState.CONNECTED):
+            if await self.state.can_transition_to(target):
+                await self.state.transition(target)
 
     async def _wait_for_utterance(self, timeout_s: float | None = None) -> str | None:
         """Wait for the next finalized utterance, or None on timeout/stream-end.

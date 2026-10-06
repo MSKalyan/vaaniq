@@ -76,7 +76,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A app.workers.celery_app.celery_app worker --loglevel=info
+    command: celery -A app.workers.celery_app.celery_app worker --loglevel=info -B
     volumes:
       - ./apps/api:/code
       - /code/.venv

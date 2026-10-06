@@ -28,8 +28,8 @@ backend: ## Run FastAPI dev server
 frontend: ## Run Next.js dev server
 	cd apps/web && pnpm dev
 
-worker: ## Run Celery worker
-	cd apps/api && celery -A app.workers.celery_app.celery_app worker --loglevel=info
+worker: ## Run Celery worker (with embedded beat)
+	cd apps/api && celery -A app.workers.celery_app.celery_app worker --loglevel=info -B
 
 # ---------- Database ----------
 db-up: ## Start PostgreSQL + Redis via docker compose

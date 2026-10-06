@@ -127,3 +127,48 @@ def test_tts_requires_an_api_key():
 
     with pytest.raises(SarvamError):
         asyncio.run(drain())
+
+
+def test_stt_buffers_audio_until_connected():
+    """Audio fed before transcribe_stream() connects must be queued, not dropped."""
+    import asyncio
+
+    from app.integrations import sarvam
+
+    stt = SarvamRealtimeSTT(api_key=API_KEY)
+
+    async def main() -> None:
+        # No transcribe_stream() yet -> chunks go to the pending buffer.
+        await stt.feed_audio(b"a")
+        await stt.feed_audio(b"b")
+        assert stt._audio_queue is None
+        assert list(stt._pending) == [b"a", b"b"]
+
+        # Connecting flushes the pending buffer in order (no network).
+        original = sarvam.stt.websockets.connect
+        sarvam.stt.websockets.connect = lambda *a, **kw: asyncio.sleep(0) or object()
+        try:
+            await stt._connect()
+        finally:
+            sarvam.stt.websockets.connect = original
+
+        assert stt._audio_queue is not None
+        assert not stt._pending
+        got = [await stt._audio_queue.get(), await stt._audio_queue.get()]
+        assert got == [b"a", b"b"]
+
+    asyncio.run(main())
+
+
+def test_stt_drops_audio_after_close():
+    """Chunks fed after close() are ignored instead of raising RuntimeError."""
+    import asyncio
+
+    stt = SarvamRealtimeSTT(api_key=API_KEY)
+
+    async def main() -> None:
+        stt._pending = None
+        stt._audio_queue = None
+        await stt.feed_audio(b"x")  # must not raise
+
+    asyncio.run(main())

@@ -7,8 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.logging import get_logger
 from app.integrations.factory import get_telephony
 from app.services import calls as call_service
+
+logger = get_logger("webhooks")
 
 router = APIRouter()
 
@@ -43,6 +46,28 @@ async def twilio_status(request: Request, db: AsyncSession = Depends(get_db)) ->
             provider_call_id=provider_call_id,
             status=call_status,
         )
+    return {"status": "ok"}
+
+
+@router.post("/twilio/stream")
+async def twilio_stream(request: Request) -> dict[str, str]:
+    """Media-Stream lifecycle callbacks (stream-started / stream-stopped / error).
+
+    Diagnostic only: surfaces Twilio's StreamError codes when a <Stream> fails to
+    start, e.g. handshake failures (31910/31920) or trial-account restrictions.
+    """
+    form = await request.form()
+    params = {k: str(v) for k, v in form.items()}
+    _verify_twilio_signature(request, params)
+
+    logger.info(
+        "twilio_stream_callback",
+        stream_event=params.get("StreamEvent"),
+        stream_sid=params.get("StreamSid"),
+        call_sid=params.get("CallSid"),
+        stream_error=params.get("StreamError"),
+        stream_error_code=params.get("StreamErrorCode"),
+    )
     return {"status": "ok"}
 
 
